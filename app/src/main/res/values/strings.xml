@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">KaraTheSupportGirl</string>
+    <string name="subscription_key">09ec6707d2ea464a939c56d095a970bf</string>
+    <string name="subscription_apiroot">https://westcentralus.api.cognitive.microsoft.com/vision/v1.0</string>
+
+</resources>

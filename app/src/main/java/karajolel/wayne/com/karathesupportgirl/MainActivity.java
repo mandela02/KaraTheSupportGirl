@@ -35,12 +35,15 @@ import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
     private static final int REQUEST_CAPTURE_IMAGE = 100;
+    private static final int PICK_IMAGE = 200;
     public ImageView mImage;
-    public Button mButton;
+    public Button mButtonTake;
+    public Button mButtonSelect;
     public TextView mTextDescription;
     public String imageFilePath;
     public Bitmap imageBitmap;
     public VisionServiceClient client;
+    private Uri mImageUri;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,11 +53,66 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         initView();
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data)
+    {
+        if (requestCode == REQUEST_CAPTURE_IMAGE)
+        {
+            if (resultCode == Activity.RESULT_OK)
+            {
+                mImageUri = data.getData();
+                imageBitmap = ImageHelper.loadSizeLimitedBitmapFromUri(
+                    mImageUri, getContentResolver());
+                //mImage.setImageBitmap(imageBitmap);
+                //Glide.with(this).load(imageFilePath).into(mImage);
+                saveToInternalStorage();
+                doDescribe();
+            }
+            else if (resultCode == Activity.RESULT_CANCELED)
+            {
+                // User Cancelled the action
+            }
+        }
+        else if (requestCode == PICK_IMAGE && resultCode == RESULT_OK)
+        {
+            mImageUri = data.getData();
+            imageBitmap = ImageHelper.loadSizeLimitedBitmapFromUri(
+                mImageUri, getContentResolver());
+            mImage.setImageBitmap(imageBitmap);
+            doDescribe();
+        }
+        super.onActivityResult(requestCode, resultCode, data);
+    }
+
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()) {
+            case R.id.button_take_a_pic:
+                openCameraIntent();
+                break;
+            case R.id.button_select_a_pic:
+                openGallery();
+                break;
+            default:
+                break;
+        }
+    }
+
     private void initView() {
         mImage = findViewById(R.id.image_taken);
-        mButton = findViewById(R.id.button_take_a_pic);
-        mButton.setOnClickListener(this);
+        mButtonTake = findViewById(R.id.button_take_a_pic);
+        mButtonTake.setOnClickListener(this);
+        mButtonSelect = findViewById(R.id.button_select_a_pic);
+        mButtonSelect.setOnClickListener(this);
         mTextDescription = findViewById(R.id.text_analyze);
+    }
+
+    private void openGallery() {
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.setType("image/*");
+        if (intent.resolveActivity(getPackageManager()) != null) {
+        }
+        startActivityForResult(intent, PICK_IMAGE);
     }
 
     private void openCameraIntent() {
@@ -84,22 +142,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     REQUEST_CAPTURE_IMAGE);
             }
         }*/
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == REQUEST_CAPTURE_IMAGE) {
-            if (resultCode == Activity.RESULT_OK) {
-                imageBitmap = (Bitmap) data.getExtras().get("data");
-                //mImage.setImageBitmap(imageBitmap);
-                //Glide.with(this).load(imageFilePath).into(mImage);
-                saveToInternalStorage();
-                doDescribe();
-            } else if (resultCode == Activity.RESULT_CANCELED) {
-                // User Cancelled the action
-            }
-        }
-        super.onActivityResult(requestCode, resultCode, data);
     }
 
     //save to external storage. uncomment provider in android Manifest to use;
@@ -149,7 +191,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     public void doDescribe() {
-        mButton.setEnabled(false);
+        mButtonTake.setEnabled(false);
+        mButtonSelect.setEnabled(false);
         mTextDescription.setText("Describing...");
         try {
             new doRequest().execute();
@@ -194,41 +237,28 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             if (e != null) {
                 mTextDescription.setText("Error: " + e.getMessage());
                 this.e = null;
-            }
-            else
-            {
+            } else {
                 Gson gson = new Gson();
                 AnalysisResult result = gson.fromJson(data, AnalysisResult.class);
-
                 mTextDescription.append("Image format: " + result.metadata.format + "\n");
-                mTextDescription.append("Image width: " + result.metadata.width + ", height:" + result.metadata.height + "\n");
+                mTextDescription.append(
+                    "Image width: " + result.metadata.width + ", height:" + result.metadata.height +
+                        "\n");
                 mTextDescription.append("\n");
-
-                for (Caption caption: result.description.captions) {
-                    mTextDescription.append("Caption: " + caption.text + ", confidence: " + caption.confidence + "\n");
+                for (Caption caption : result.description.captions) {
+                    mTextDescription.append(
+                        "Caption: " + caption.text + ", confidence: " + caption.confidence + "\n");
                 }
                 mTextDescription.append("\n");
-
-                for (String tag: result.description.tags) {
+                for (String tag : result.description.tags) {
                     mTextDescription.append("Tag: " + tag + "\n");
                 }
                 mTextDescription.append("\n");
-
                 mTextDescription.append("\n--- Raw Data ---\n\n");
                 mTextDescription.append(data);
             }
-            mButton.setEnabled(true);
-        }
-    }
-
-    @Override
-    public void onClick(View v) {
-        switch (v.getId()) {
-            case R.id.button_take_a_pic:
-                openCameraIntent();
-                break;
-            default:
-                break;
+            mButtonTake.setEnabled(true);
+            mButtonSelect.setEnabled(true);
         }
     }
 }

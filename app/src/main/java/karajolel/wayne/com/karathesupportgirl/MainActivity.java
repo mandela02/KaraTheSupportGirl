@@ -10,6 +10,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.v7.app.AppCompatActivity;
+import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -105,6 +106,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mButtonSelect = findViewById(R.id.button_select_a_pic);
         mButtonSelect.setOnClickListener(this);
         mTextDescription = findViewById(R.id.text_analyze);
+        mTextDescription.setMovementMethod(new ScrollingMovementMethod());
     }
 
     private void openGallery() {
